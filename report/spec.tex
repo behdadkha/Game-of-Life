@@ -1,0 +1,267 @@
+\documentclass[12pt]{article}
+
+\usepackage{graphicx}
+\usepackage{paralist}
+\usepackage{amsfonts}
+\usepackage{amsmath}
+\usepackage{hhline}
+\usepackage{booktabs}
+\usepackage{multirow}
+\usepackage{multicol}
+\usepackage{url}
+
+\oddsidemargin -10mm
+\evensidemargin -10mm
+\textwidth 160mm
+\textheight 200mm
+\renewcommand\baselinestretch{1.0}
+
+\pagestyle {plain}
+\pagenumbering{arabic}
+
+\newcounter{stepnum}
+
+%% Comments
+
+\usepackage{color}
+
+\newif\ifcomments\commentstrue
+
+\ifcomments
+\newcommand{\authornote}[3]{\textcolor{#1}{[#3 ---#2]}}
+\newcommand{\todo}[1]{\textcolor{red}{[TODO: #1]}}
+\else
+\newcommand{\authornote}[3]{}
+\newcommand{\todo}[1]{}
+\fi
+
+\newcommand{\wss}[1]{\authornote{blue}{SS}{#1}}
+
+\title{Game of Life}
+\author{Behdad Khamneli}
+\date{April, 13, 2019}
+
+\begin {document}
+
+\maketitle
+This Module Interface Specification (MIS) document contains modules, types and
+methods for implementing the state of a game of John Conway's game of life.
+
+\newpage
+
+\section* {Game Board ADT Module}
+
+\subsection*{Template Module}
+
+BoardT
+
+\subsection* {Uses}
+
+\noindent N/A
+
+\subsection* {Syntax}
+
+\subsubsection* {Exported Access Programs}
+
+\begin{tabular}{| l | l | l | l |}
+\hline
+\textbf{Routine name} & \textbf{In} & \textbf{Out} & \textbf{Exceptions}\\
+\hline
+new BoardT  & string & BoardT & invalid\_argument, out\_of\_range\\
+\hline
+is\_cell\_alive & $\mathbb{N}$, $\mathbb{N}$ & $\mathbb{B}$ & out\_of\_range\\
+\hline
+set\_cell\_alive & $\mathbb{N}$, $\mathbb{N}$ &  &out\_of\_range\\
+\hline
+set\_cell\_dead & $\mathbb{N}$, $\mathbb{N}$ &  & out\_of\_range\\
+\hline
+next\_state & & &\\
+\hline
+getGrid & & seq of (seq of $\mathbb{B}$) & \\
+\hline
+\end{tabular}
+
+\subsection* {Semantics}
+\subsubsection* {Environmental Variables}
+$FileName:$ The input file containing the grid representing the first state of the game.
+
+\subsubsection* {State Variables}
+
+$gird$: seq of (seq of $\mathbb{B}$)
+
+\subsubsection* {State Invariant}
+
+$|grid| = 20\times20$\\
+
+\subsubsection* {Assumptions \& Design Decisions}
+
+\begin{itemize}
+
+\item The boardT constructor is called before any other access routine is called on that
+instance. Once a BoardT has been created, the constructor will not be called on it again.\\
+
+\item The input file is in a grid format with dead cells being 0 and alive cells being 1. 
+The first row and column start from 0.\\
+
+\item The game board's grid has 20 rows and 20 columns.\\ 
+
+\item For better scalability, this module is specified as an Abstract Data Type
+  (ADT) instead of an Abstract Object. This would allow multiple games to be
+  created and tracked at once by a client.[refrence: Assignment 3 spec]
+
+\item The getter function is provided, though violating the property of being
+  essential, to give a would-be view function easy access to the game status. This ensures that the model is able to be easily displayed(output) and integrated with a game
+  system in the future. [reference: Assignment 3 spec]
+
+\end{itemize}
+
+\subsubsection* {Access Routine Semantics}
+
+\noindent BoardT($\mathit{FileName}$):
+\begin{itemize}
+\item transition: Read the data from the input file associated to the string FileName. Initialize the array grid using the data from the file. The text file contains "0"s and "1"s. All the chars in a row are put together with no spaces. "1" represents an alive cell and "0" represents a dead cell. 
+The following is an example of a valid input file(20$\times$20 grid).
+\begin{center}
+    00000010000000000000\\
+    00000001000000000000\\
+    00000111000000000000\\
+    00000000000000000000\\
+    .\\
+    .\\
+    .\\
+    .\\
+    00000000000000000000\\
+    00000000000000000000\\
+    00000000000000000000\\
+
+\end{center}
+$grid := \text{new seq of (seq of } \mathbb{B})$ such that $(\forall \, row,col : \mathbb{N} | is\_valid\_range(row,col) : (FileName[row][col] = 1 \Rightarrow grid[row][col] = true\, |\, FileName[row][col] = 0 \Rightarrow grid[row][col] = false))$
+\item exception: $exc :=$ (File does not exist $\Rightarrow$ invalid\_argument $|$ $\lnot$ is\_valid\_range( num of row $\in$ File, num of column $\in$ File) $\Rightarrow$ out\_of\_range)
+\end{itemize}
+
+\noindent is\_cell\_alive($row$, $col$):
+\begin{itemize}
+\item output: $out := grid[row][col]$
+\item exception:
+  $exc := (\lnot \text{is\_valid\_range(row,col)} \Rightarrow \text{out\_of\_range})$
+\end{itemize}
+
+\noindent set\_cell\_alive($row$, $col$):
+\begin{itemize}
+\item transition: $grid[row][col] :=$ true
+\item exception:
+  $exc := (\lnot \text{is\_valid\_range(row,col)} \Rightarrow \text{out\_of\_range})$
+\end{itemize}
+
+\noindent set\_cell\_dead($row$, $col$):
+\begin{itemize}
+\item transition: $grid[row][col] :=$ false
+\item exception:
+  $exc := (\lnot \text{is\_valid\_range(row,col)}  \Rightarrow \text{out\_of\_range})$
+\end{itemize}
+
+\noindent next\_state():
+\begin{itemize}
+    \item transition: $grid := \text{new seq of (seq of } \mathbb{B} )\,G \text{ such that } \\(\forall row,col:\mathbb{N}\, |\, is\_valid\_range(row,col) : (count\_alive\_around(row, col) = 3 \Rightarrow G[row][col] = true \,|\, count\_alive\_around(row, col) < 2 \Rightarrow G[row][col] = false \,| \,count\_alive\_around(row, col) > 3 \Rightarrow G[row][col] = false))$
+\end{itemize}
+
+\noindent getGrid():
+\begin{itemize}
+\item $out := grid$
+\item exception: $none$
+\end{itemize}
+
+\subsection*{Local Types}
+
+\subsection*{Local Functions}
+
+\noindent $\text{is\_valid\_range}: \mathbb{N} \times \mathbb{N} \rightarrow \mathbb{B}$\\
+\noindent $\text{is\_valid\_range}(row, col) \equiv (0 \le row < 20 \land 0 \le col < 20)$ \\
+
+\noindent $\text{count\_alive\_around: } \mathbb{N} \times \mathbb{N} \rightarrow \mathbb{N}$\\
+\noindent $\text{count\_alive\_around(row, col)} \equiv \text{point such that}\\ (+point: \mathbb{N}\, |\, check\_around\_alive(row,col) : 1)$ \\
+
+\noindent $\text{check\_around\_alive: } \mathbb{N} \times \mathbb{N} \rightarrow \mathbb{B}$\\
+\noindent $\text{check\_around\_alive(row,col)} \equiv (\exists i, j : \mathbb{N}\, |\, i \in [row-1..row+1] \land j \in [col-1..col+1] : gridCopy[i][j] = true \land is\_valid\_range(row+i, col+j) \land \lnot(i = 0 \land j = 0))$\\
+\noindent where\\
+    $gridCopy \equiv$ new seq of (seq of $\mathbb{B}$) N such that $(\forall i,j : \mathbb{N}\, |\, is\_valid\_range(i,j) : N[i][j] = grid[i][j])$\\ \#new copy of the grid
+
+\newpage
+
+\section* {Display module}
+
+\subsection*{Module}
+
+view
+
+\subsection* {Uses}
+
+\noindent N/A
+
+\subsection* {Syntax}
+
+\subsubsection* {Exported Access Programs}
+
+\begin{tabular}{| l | l | l | l |}
+\hline
+\textbf{Routine name} & \textbf{In} & \textbf{Out} & \textbf{Exceptions}\\
+\hline
+display & seq of (seq of $\mathbb{B}$) & &\\
+\hline
+output  & seq of (seq of $\mathbb{B}$), string & new File &\\
+\hline
+\end{tabular}
+
+\subsection* {Semantics}
+
+\subsubsection* {Environmental Variables}
+$FileName:$ The output file for the game grid.
+
+\subsubsection* {State Variables}
+none
+\subsubsection* {State Invariant}
+none
+\subsubsection* {Assumptions \& Design Decisions}
+
+\begin{itemize}
+\item The grid being printed can have any size.
+\end{itemize}
+
+\subsubsection* {Access Routine Semantics}
+
+\noindent display(grid):
+\begin{itemize}
+\item out: Read the grid and display it on the screen. Print the grid using the following format:
+for each true in the array print a 1 and for each false in the array print a 0.
+An example:
+\begin{center}
+    00000010010000000000\\
+    00000000000010000000\\
+    .\\
+    .\\
+    .\\
+    00000000000000000000\\
+\end{center}
+\item exception: $exc := none$ 
+\end{itemize}
+
+\noindent output(grid, FileName):
+\begin{itemize}
+    \item output: $out :=$ new file with the name,FileName. Export the grid's data to the file. For each false in the grid print a 0 to the file and for each true in the grid print a 1 to the file. An example of an output:
+    \begin{center}
+        00000010010000000000\\
+        00000000000010000000\\
+        .\\
+        .\\
+        .\\
+        00000000000000000000\\
+    \end{center}
+    \item exception: $exc := none$
+\end{itemize}
+
+\subsection*{Local Types}
+none
+\subsection*{Local Functions}
+none
+ 
+\end {document}
